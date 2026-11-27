@@ -30,6 +30,10 @@ x-server: &server
     STRIPE_PRICES_MAX: ${STRIPE_PRICES_MAX:-}
     BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-7}
     SOFT_RETENTION_DAYS: ${SOFT_RETENTION_DAYS:-30}
+    DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+    DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+    DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-https://skystats.cc/v1/auth/discord/callback}
+    BOT_API_KEY: ${BOT_API_KEY:-}
 
 services:
   postgres:
@@ -115,6 +119,11 @@ services:
       SKYSTATS_API_URL: http://api:3000
       SKYSTATS_WEB_URL: ${PUBLIC_WEB_URL:-https://skystats.cc}
       STATUS_ALERT_CHANNEL_IDS: ${STATUS_ALERT_CHANNEL_IDS:-}
+      BOT_API_KEY: ${BOT_API_KEY:-}
+      ROLE_SYNC_GUILD_ID: ${ROLE_SYNC_GUILD_ID:-}
+      LINKED_ROLE_ID: ${LINKED_ROLE_ID:-}
+      PRO_ROLE_ID: ${PRO_ROLE_ID:-}
+      MAX_ROLE_ID: ${MAX_ROLE_ID:-}
     depends_on:
       api: { condition: service_healthy }
 

@@ -56,9 +56,11 @@ Numbers match the ideas doc. The bot list follows `STUFF.txt`, so bot ideas 40, 
 | Web | 61 money chart, 111 public profile, 132 billing, 133 pricing, 136 privacy centre, 140 shared chart, 142 log scale, plus privacy notice, cookies and terms pages |
 | Backend | 175–178 rollups and tier retention, 212–214 entitlements, middleware and grace, 220 audit log, 221 GDPR tooling, 224 idempotency, 225 circuit breaker, 239 encrypted off-site backups; 168 replaced by "no polling" |
 
-### Phase 2: accounts and Discord
+### Phase 2: accounts and Discord (done on `feat/phase2-discord` branches)
 
-Discord OAuth and linking (130, 210, 211), so the bot knows who is calling. Then /me (17), /link (16), /privacy toggles in Discord (18), /subscribe (19), tier roles (20), linked roles (21), /whois only for public profiles (12), sessions and devices page (137), multiple Minecraft accounts (131).
+Discord OAuth with the `identify` scope only, and linking (130, 210, 211), so the bot knows who is calling. Then /me (17), /link (16), /privacy toggles in Discord (18), /subscribe (19), tier roles (20), linked roles (21), /whois only for public profiles (12), sessions and devices page (137), multiple Minecraft accounts (131).
+
+Phase 2 decisions: Discord login is an extra sign-in method, not a new account type. A second Minecraft account on one Discord user needs Pro or Max (idea 131). `/whois` and the roles are opt-in (`discordPublic`, `showTierRole`, both default off). The bot's key is refused on anything that came through Cloudflare. Data export and account deletion stay web-only.
 
 ### Phase 3: alerts (Pro and above)
 
