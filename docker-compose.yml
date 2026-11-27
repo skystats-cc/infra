@@ -114,9 +114,11 @@ services:
     profiles: [tunnel]
     restart: unless-stopped
     logging: *logging
-    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
-    volumes:
-      - ./cloudflared:/etc/cloudflared:ro
+    # Token-based tunnel: hostnames/routing are configured in the Cloudflare dashboard (see README)
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      # Empty token = cloudflared exits with an error; set it in .env or drop "tunnel" from COMPOSE_PROFILES
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
     depends_on:
       web: { condition: service_started }
       api: { condition: service_healthy }

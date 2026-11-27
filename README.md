@@ -21,7 +21,7 @@ api, worker ──► postgres        bot ──► api        migrate runs once
 | uptime-kuma *(profile `monitoring`)* | `louislam/uptime-kuma` | `127.0.0.1:3001` |
 | dozzle *(profile `monitoring`)* | `amir20/dozzle` | `127.0.0.1:8081` |
 
-Nothing listens on the network except SSH. Use an SSH tunnel to reach the localhost dashboards from your PC: `ssh -L 3001:localhost:3001 -L 8081:localhost:8081 you@laptop`.
+Nothing listens on the network except SSH. The tunnel only makes outbound connections. Use an SSH tunnel to reach the localhost dashboards from your PC: `ssh -L 3001:localhost:3001 -L 8081:localhost:8081 you@laptop`.
 
 ## First-time setup
 
@@ -49,16 +49,21 @@ nano .env       # passwords, ADMIN_API_KEY, Discord production bot token, etc.
 Generate random values with `openssl rand -hex 32`.
 
 ### 4. Cloudflare Tunnel
-skystats.cc's DNS must be on Cloudflare (free plan).
-```bash
-docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel login
-docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel create skystats
-# rename the generated <TUNNEL-ID>.json to credentials.json
-cp cloudflared/config.yml.example cloudflared/config.yml   # put the tunnel id in it
-docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel route dns skystats skystats.cc
-docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel route dns skystats api.skystats.cc
-```
-Routing lives in `cloudflared/config.yml` (version-controlled as `.example`), and `/admin` is blocked at the edge.
+skystats.cc's DNS must be on Cloudflare (free plan). The tunnel is token-based: routing lives in the Cloudflare dashboard, and the laptop only needs one token.
+
+1. Cloudflare dashboard → **Zero Trust → Networks → Tunnels → Create a tunnel** → **Cloudflared** → name it `skystats`.
+2. On the install step, copy only the token (the long `eyJ…` string) into `.env` as `CLOUDFLARE_TUNNEL_TOKEN`. Skip the install command; Docker runs cloudflared.
+3. Add **public hostnames** (Cloudflare creates the DNS records):
+
+   | Hostname | Service |
+   |---|---|
+   | `skystats.cc` | HTTP → `web:80` |
+   | `www.skystats.cc` | HTTP → `web:80` |
+   | `api.skystats.cc` | HTTP → `api:3000` |
+
+4. Keep admin routes off the internet: **Security → WAF → Custom rules → Create rule**: *Hostname equals `api.skystats.cc`* **and** *URI Path starts with `/admin`* → **Block**. (`skystats.cc/admin` is already blocked by the website's Caddy.)
+
+Until the token is set, run without the tunnel: `COMPOSE_PROFILES=monitoring` in `.env`.
 
 ### 5. First deploy
 ```bash
