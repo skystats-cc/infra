@@ -1,0 +1,108 @@
+# skystats infra
+
+Everything needed to run SkyStats on the home server: one Docker Compose stack, a Cloudflare Tunnel for public access, backups, and deploy scripts.
+
+```
+internet ──► Cloudflare ──► cloudflared ─┬─► web (Caddy) ──► static site
+                                         │        └── /v1, /healthz ──► api
+                                         └─► api.skystats.cc ──► api   (/admin blocked)
+api, worker ──► postgres        bot ──► api        migrate runs once before api/worker
+```
+
+| Service | Image | Exposed |
+|---|---|---|
+| postgres | `postgres:17-alpine` | nowhere (internal only) |
+| migrate | `ghcr.io/skystats-cc/server` | runs once, then exits |
+| api | `ghcr.io/skystats-cc/server` | `127.0.0.1:3000` (for Claude Code / MCP), public via tunnel |
+| worker | `ghcr.io/skystats-cc/server` | – |
+| web | `ghcr.io/skystats-cc/web` | `127.0.0.1:8080`, public via tunnel |
+| bot | `ghcr.io/skystats-cc/discord-bot` | – |
+| cloudflared *(profile `tunnel`)* | `cloudflare/cloudflared` | outbound only |
+| uptime-kuma *(profile `monitoring`)* | `louislam/uptime-kuma` | `127.0.0.1:3001` |
+| dozzle *(profile `monitoring`)* | `amir20/dozzle` | `127.0.0.1:8081` |
+
+Nothing listens on the network except SSH. Use an SSH tunnel to reach the localhost dashboards from your PC: `ssh -L 3001:localhost:3001 -L 8081:localhost:8081 you@laptop`.
+
+## First-time setup
+
+### 1. The laptop
+1. Install **Ubuntu Server 24.04 LTS** (enable OpenSSH during install). Wired ethernet + a fixed IP in your router if possible.
+2. Clone this repo and run the setup script (installs Docker, firewall, auto-updates, lid-close/sleep fixes). Read it first:
+   ```bash
+   git clone https://github.com/skystats-cc/infra.git ~/skystats/infra
+   cd ~/skystats/infra
+   sudo bash scripts/setup-laptop.sh
+   ```
+3. Log out and back in. In the BIOS, enable "restore on AC power loss" if it exists.
+
+### 2. Access to the images
+Images are published to GitHub Container Registry by each repo's `docker.yml` workflow. For private repos, log in once with a GitHub token that has `read:packages`:
+```bash
+echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
+```
+
+### 3. Secrets
+```bash
+cp .env.example .env
+nano .env       # passwords, ADMIN_API_KEY, Discord production bot token, etc.
+```
+Generate random values with `openssl rand -hex 32`.
+
+### 4. Cloudflare Tunnel
+skystats.cc's DNS must be on Cloudflare (free plan).
+```bash
+docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel login
+docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel create skystats
+# rename the generated <TUNNEL-ID>.json to credentials.json
+cp cloudflared/config.yml.example cloudflared/config.yml   # put the tunnel id in it
+docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel route dns skystats skystats.cc
+docker run --rm -it -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel route dns skystats api.skystats.cc
+```
+Routing lives in `cloudflared/config.yml` (version-controlled as `.example`), and `/admin` is blocked at the edge.
+
+### 5. First deploy
+```bash
+scripts/deploy.sh
+scripts/register-commands.sh      # registers the bot's slash commands
+```
+Check: `curl localhost:3000/readyz`, then open https://skystats.cc.
+
+### 6. Backups (do this before you have data you care about)
+```bash
+crontab -e
+# daily 04:15
+15 4 * * * /home/<you>/skystats/infra/scripts/backup.sh >> /home/<you>/skystats/infra/backups/backup.log 2>&1
+```
+Set `RCLONE_REMOTE` in `.env` (after `rclone config`) so dumps also go off the laptop. **Test a restore** once: `scripts/restore.sh backups/<file>.dump`.
+
+### 7. Monitoring
+Open Uptime Kuma (`localhost:3001` via SSH tunnel) and add monitors for `https://skystats.cc`, `https://api.skystats.cc/healthz`, with a Discord webhook for alerts. Add an external free monitor too (UptimeRobot / Better Stack), since Uptime Kuma can't alert you if the whole laptop is down.
+
+## Day to day
+
+| Task | Command |
+|---|---|
+| Deploy latest `main` of every repo | `scripts/deploy.sh` |
+| Re-register bot commands | `scripts/register-commands.sh` |
+| Status | `docker compose ps` |
+| Logs | `docker compose logs -f worker` (or Dozzle) |
+| Restart one service | `docker compose restart api` |
+| Backup now | `scripts/backup.sh` |
+| Restore | `scripts/restore.sh backups/<file>.dump` |
+| DB shell | `docker compose exec postgres psql -U skystats` |
+| Pin a version | set `SERVER_TAG=0.3.1` in `.env`, `scripts/deploy.sh` |
+
+## Running the whole stack on your own PC
+
+With Docker Desktop and all repos side by side (`scripts/clone-all.sh`):
+```bash
+cp .env.example .env    # set COMPOSE_PROFILES= (empty) and dummy Discord values
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+```
+Site on http://localhost:8080, API on http://localhost:3000.
+
+## Claude Code + MCP on the laptop
+
+Point the MCP server at `http://localhost:3000/admin/*` with `x-admin-key: $ADMIN_API_KEY`. It can check queues, trigger snapshots and restart the API (Docker restarts it). It never needs database access.
+
+See **ROADMAP.md** for where this goes next.

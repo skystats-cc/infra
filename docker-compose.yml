@@ -1,0 +1,149 @@
+# SkyStats production stack. See README.md for setup.
+#   docker compose up -d                 core services
+#   COMPOSE_PROFILES=tunnel,monitoring   (set in .env) adds the Cloudflare tunnel + monitoring
+name: skystats
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+x-server: &server
+  image: ghcr.io/skystats-cc/server:${SERVER_TAG:-main}
+  restart: unless-stopped
+  init: true
+  logging: *logging
+  environment: &server-env
+    NODE_ENV: production
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    ADMIN_API_KEY: ${ADMIN_API_KEY:?set ADMIN_API_KEY in .env}
+    HYPIXEL_API_KEY: ${HYPIXEL_API_KEY:-}
+    TRUST_PROXY: "true"
+    CORS_ORIGINS: ${CORS_ORIGINS:-}
+    RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-120}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    logging: *logging
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    # Sized for a ~4-8GB laptop; tune with PG_SHARED_BUFFERS etc. in .env
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-512MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-1536MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-16MB}
+      - -c
+      - max_connections=50
+      - -c
+      - log_min_duration_statement=500
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # No ports: only reachable from other containers
+
+  # Applies database migrations, then exits. api/worker wait for it.
+  migrate:
+    <<: *server
+    restart: "no"
+    command: ["node", "dist/db/migrate.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *server
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    # Localhost only: Claude Code / the MCP server on the laptop use this for /admin.
+    # The public reaches the API through the tunnel, never this port.
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  worker:
+    <<: *server
+    command: ["node", "dist/apps/worker.js"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    image: ghcr.io/skystats-cc/web:${WEB_TAG:-main}
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      API_UPSTREAM: api:3000
+    depends_on:
+      api: { condition: service_healthy }
+    ports:
+      - "127.0.0.1:8080:80"
+
+  bot:
+    image: ghcr.io/skystats-cc/discord-bot:${BOT_TAG:-main}
+    restart: unless-stopped
+    init: true
+    logging: *logging
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?set DISCORD_TOKEN in .env}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID in .env}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      SKYSTATS_API_URL: http://api:3000
+    depends_on:
+      api: { condition: service_healthy }
+
+  # ---- profile: tunnel ------------------------------------------------------
+  # Public traffic: Cloudflare -> tunnel -> web / api. No open router ports.
+  cloudflared:
+    image: cloudflare/cloudflared:${CLOUDFLARED_TAG:-latest}
+    profiles: [tunnel]
+    restart: unless-stopped
+    logging: *logging
+    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      web: { condition: service_started }
+      api: { condition: service_healthy }
+
+  # ---- profile: monitoring --------------------------------------------------
+  # Uptime dashboards + alerts (Discord webhook) on http://localhost:3001
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    profiles: [monitoring]
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - uptime-kuma:/app/data
+    ports:
+      - "127.0.0.1:3001:3001"
+
+  # Live container logs in the browser on http://localhost:8081
+  dozzle:
+    image: amir20/dozzle:latest
+    profiles: [monitoring]
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:8081:8080"
+
+volumes:
+  pgdata:
+  uptime-kuma:

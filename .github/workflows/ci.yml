@@ -1,0 +1,19 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose file is valid (all profiles)
+        run: |
+          cp .env.example .env
+          DISCORD_TOKEN=x DISCORD_CLIENT_ID=x docker compose --profile tunnel --profile monitoring config --quiet
+          mkdir -p ../server ../web ../discord-bot
+          DISCORD_TOKEN=x DISCORD_CLIENT_ID=x docker compose -f docker-compose.yml -f docker-compose.local.yml config --quiet
+      - name: Shell scripts
+        run: shellcheck -x scripts/*.sh

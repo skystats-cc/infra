@@ -1,0 +1,23 @@
+# Build the whole stack from the sibling repo folders instead of pulling images.
+# Use this to test everything together on your own machine:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+#
+# Expects ../server, ../web, ../discord-bot next to this repo (scripts/clone-all.sh).
+# The server image is built once (cached) and shared by migrate, api and worker.
+services:
+  migrate:
+    build: ../server
+    image: skystats/server:local
+  api:
+    build: ../server
+    image: skystats/server:local
+  worker:
+    build: ../server
+    image: skystats/server:local
+  web:
+    build: ../web
+    image: skystats/web:local
+  bot:
+    build: ../discord-bot
+    image: skystats/discord-bot:local

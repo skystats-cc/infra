@@ -1,0 +1,6 @@
+.env
+backups/
+cloudflared/config.yml
+cloudflared/credentials.json
+cloudflared/*.json
+*.log
