@@ -21,6 +21,15 @@ x-server: &server
     TRUST_PROXY: "true"
     CORS_ORIGINS: ${CORS_ORIGINS:-}
     RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-120}
+    # On-demand lookups only; Hypixel forbids polling player data for histories
+    PROFILE_REFRESH_MIN_MINUTES: ${PROFILE_REFRESH_MIN_MINUTES:-60}
+    PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-https://skystats.cc}
+    STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    STRIPE_PRICES_PRO: ${STRIPE_PRICES_PRO:-}
+    STRIPE_PRICES_MAX: ${STRIPE_PRICES_MAX:-}
+    BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-7}
+    SOFT_RETENTION_DAYS: ${SOFT_RETENTION_DAYS:-30}
 
 services:
   postgres:
@@ -104,6 +113,8 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?set DISCORD_CLIENT_ID in .env}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
       SKYSTATS_API_URL: http://api:3000
+      SKYSTATS_WEB_URL: ${PUBLIC_WEB_URL:-https://skystats.cc}
+      STATUS_ALERT_CHANNEL_IDS: ${STATUS_ALERT_CHANNEL_IDS:-}
     depends_on:
       api: { condition: service_healthy }
 
