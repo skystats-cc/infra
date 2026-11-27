@@ -105,4 +105,23 @@ Site on http://localhost:8080, API on http://localhost:3000.
 
 Point the MCP server at `http://localhost:3000/admin/*` with `x-admin-key: $ADMIN_API_KEY`. It can check queues, trigger snapshots and restart the API (Docker restarts it). It never needs database access.
 
+## Claude Code on the server (skystats-ops MCP)
+
+The `mcp/` folder is an MCP server that gives Claude Code safe, structured control of this stack: status, logs, masked config, read-only SQL, restart, deploy, backups and admin actions. `.mcp.json` registers it for this repo, `.claude/settings.json` decides what runs without asking, and `CLAUDE.md` is Claude's operating guide.
+
+```bash
+bash scripts/setup-claude.sh     # as your normal user: builds mcp/, installs Claude Code
+cd ~/skystats/infra && claude    # sign in, trust the folder, approve "skystats-ops"
+```
+
+Over SSH, use `tmux` so a session survives disconnects: `tmux new -s claude`, then `claude`; reattach later with `tmux attach -t claude`.
+
+| Runs without asking | Asks first | Blocked |
+|---|---|---|
+| status, logs, config_get (secrets masked), list_backups, sql (one read-only statement as a read-only DB role), backup, refresh_player, bazaar_snapshot, `docker compose ps/logs`, `git status/log/diff` | restart, config_set, deploy, register_bot_commands, `git push`, `sudo`, any other shell command | reading `.env` / Cloudflare credentials / backups, `restore.sh`, `docker compose down -v`, `docker volume rm`, `docker system prune`, `rm -rf` |
+
+Database restores are deliberately not a tool. Run `scripts/restore.sh` yourself.
+
+**Know what you're handing over:** Claude Code runs as your user, which is in the `docker` group, which is effectively root on this machine. The permission rules keep the risky actions behind a prompt; read those prompts before approving.
+
 See **ROADMAP.md** for where this goes next.

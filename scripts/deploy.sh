@@ -6,6 +6,11 @@ source "$(dirname "$0")/lib.sh"
 log "Updating infra repo"
 git pull --ff-only
 
+if [ -d mcp ] && command -v npm >/dev/null; then
+  log "Rebuilding the skystats-ops MCP server"
+  (cd mcp && npm ci --silent --no-audit --no-fund && npm run build --silent)
+fi
+
 log "Pulling images"
 docker compose pull --quiet
 
