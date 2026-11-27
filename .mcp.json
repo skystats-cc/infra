@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "skystats-ops": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/dist/index.js"]
+    }
+  }
+}

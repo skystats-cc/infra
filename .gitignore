@@ -1,4 +1,5 @@
 .env
+.env.bak
 backups/
 cloudflared/config.yml
 cloudflared/credentials.json

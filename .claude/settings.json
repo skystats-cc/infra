@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "mcp__skystats-ops__status",
+      "mcp__skystats-ops__logs",
+      "mcp__skystats-ops__config_get",
+      "mcp__skystats-ops__list_backups",
+      "mcp__skystats-ops__sql",
+      "mcp__skystats-ops__backup",
+      "mcp__skystats-ops__refresh_player",
+      "mcp__skystats-ops__bazaar_snapshot",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose logs *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(df *)",
+      "Bash(free *)",
+      "Bash(uptime *)"
+    ],
+    "ask": [
+      "mcp__skystats-ops__restart",
+      "mcp__skystats-ops__config_set",
+      "mcp__skystats-ops__deploy",
+      "mcp__skystats-ops__register_bot_commands",
+      "Bash(git push *)",
+      "Bash(sudo *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.bak)",
+      "Read(./cloudflared/credentials.json)",
+      "Read(./backups/**)",
+      "Bash(scripts/restore.sh *)",
+      "Bash(bash scripts/restore.sh *)",
+      "Bash(docker compose down -v *)",
+      "Bash(docker volume rm *)",
+      "Bash(docker system prune *)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}

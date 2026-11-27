@@ -17,3 +17,20 @@ jobs:
           DISCORD_TOKEN=x DISCORD_CLIENT_ID=x docker compose -f docker-compose.yml -f docker-compose.local.yml config --quiet
       - name: Shell scripts
         run: shellcheck -x scripts/*.sh
+
+  mcp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
