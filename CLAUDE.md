@@ -15,13 +15,13 @@ postgres · migrate (runs once) · api (`127.0.0.1:3000`, admin routes need `x-a
 ## Rules
 - Explain what you're about to change and why before `restart`, `config_set` or `deploy`.
 - Never restore the database, delete volumes, `docker compose down -v`, or prune Docker. Tell the person the command and let them run it.
-- Never commit `.env`, `.env.bak`, `cloudflared/credentials.json` or anything in `backups/`.
+- Never commit `.env`, `.env.bak` or anything in `backups/`. `CLOUDFLARE_TUNNEL_TOKEN` is a secret like any other.
 - Changes to files in this repo go on a new branch (`fix/...`, `feat/...`) and reach `main` through a PR. Don't commit to `main`.
 - Code problems in the apps (server, web, bot, mod) are fixed in their own repos, not patched here. Diagnose, then describe the fix.
 
 ## Common tasks
 - **"Is everything OK?"** → `status`, then `logs` with `grep: "error"` for anything unhealthy.
-- **Site down** → `status`; check `cloudflared` and `web` logs; `api` readiness.
+- **Site down** → `status`; check `cloudflared` and `web` logs; `api` readiness. Tunnel routing lives in the Cloudflare dashboard, not in this repo.
 - **Ingestion stale** → `logs worker since 30m`; `sql`: `select max(polled_at) from bazaar_products`.
 - **Change a setting** → `config_get`, then `config_set` (it recreates affected containers).
 - **Ship new versions** → `deploy` (pulls images built by each repo's CI), then `status`.

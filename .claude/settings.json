@@ -30,7 +30,6 @@
     "deny": [
       "Read(./.env)",
       "Read(./.env.bak)",
-      "Read(./cloudflared/credentials.json)",
       "Read(./backups/**)",
       "Bash(scripts/restore.sh *)",
       "Bash(bash scripts/restore.sh *)",

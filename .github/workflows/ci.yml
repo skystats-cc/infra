@@ -12,7 +12,7 @@ jobs:
       - name: Compose file is valid (all profiles)
         run: |
           cp .env.example .env
-          DISCORD_TOKEN=x DISCORD_CLIENT_ID=x docker compose --profile tunnel --profile monitoring config --quiet
+          DISCORD_TOKEN=x DISCORD_CLIENT_ID=x CLOUDFLARE_TUNNEL_TOKEN=x docker compose --profile tunnel --profile monitoring config --quiet
           mkdir -p ../server ../web ../discord-bot
           DISCORD_TOKEN=x DISCORD_CLIENT_ID=x docker compose -f docker-compose.yml -f docker-compose.local.yml config --quiet
       - name: Shell scripts
