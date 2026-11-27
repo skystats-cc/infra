@@ -92,9 +92,18 @@ Phase 5 decisions:
 - The CSV export is Pro as a convenience. The full JSON data export stays free for everyone.
 - Also built: dashboard items 63–66, 68, 71, 73 and 74, plus bot /session (13) and /coop (2).
 
-### Phase 6: social and community (all opt-in)
+### Phase 6: social and community (all opt-in) (done on `feat/phase6-social` branches)
 
 Leaderboards from `showOnLeaderboards` (10, 35, 81, 115, 190), follow only public profiles (114), achievements and badges (44, 116, 195), Wrapped (43, 113, 194), grinding competitions from mod data (37), guild tracking limited to the guild owner's own app (36), /guess-price and /predict with no prizes (42, 45), /rich-or-not only with public profiles (46), community ratings as votes only (109).
+
+Phase 6 decisions:
+- Leaderboards (including co-op boards) only count players with `showOnLeaderboards` on.
+- Follows only work with public profiles. The supporter badge shows only with `showTierRole` on.
+- Profile themes are presets (Pro) and the custom link needs Max. There are no image uploads, so no moderation duty for user images.
+- Joining a competition is the opt-in to appear in that server's standings. Profile resets are excluded from gains.
+- Games (guess the price, up/down, rich-or-not) have no stakes, no entry and no prizes, so they're outside the Gambling Act 2005 and Hypixel's gambling rule. Game answers are stored against a Discord id for 30 days.
+- Share images are rendered on the server; link-preview bots get Open Graph tags through Caddy.
+- Hypixel-guild tracking (36) isn't built because of Hypixel's policy. Discord-server boards and competitions cover the use.
 
 ### Phase 7: platform and ops
 

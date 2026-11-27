@@ -128,6 +128,8 @@ services:
       PRO_ROLE_ID: ${PRO_ROLE_ID:-}
       MAX_ROLE_ID: ${MAX_ROLE_ID:-}
       LIVE_BAZAAR_CHANNEL_ID: ${LIVE_BAZAAR_CHANNEL_ID:-}
+      SERVER_LEADERBOARD_CHANNEL_IDS: ${SERVER_LEADERBOARD_CHANNEL_IDS:-}
+      MEMBERS_INTENT: ${MEMBERS_INTENT:-false}
     depends_on:
       api: { condition: service_healthy }
 
