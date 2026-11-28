@@ -68,9 +68,16 @@ Alert rules table and delivery worker, quiet hours (32), notification settings (
 
 Phase 3 decisions: every notification is opt-in, and DMs also need Discord linked. Quiet hours delay delivery rather than drop it. Notifications are kept 90 days. Price alerts are limited to 25 on Pro and 200 on Max. Manipulation warnings describe order and volume patterns only. Goals are free; the "goal reached" alert is Pro and above. Election reminders fire when voting opens, because Hypixel's election data has no end time.
 
-### Phase 4: bazaar and methods
+### Phase 4: bazaar and methods (done on `feat/phase4-bazaar-methods` branches)
 
-Bazaar pages (83–98, 100), auction ingestion and lowest-BIN (159, 160), items metadata and recipes (164, 165), coins/hour engine and module registry (187, 188), method pages and builder (101–110, 189). Bot: /bz (4), /bz-history (5), /flip (6), /craft (7), /mmm (8), live bazaar channel (34). Forecasts (186) are labelled experimental.
+Bazaar pages (83–98, 100), auction ingestion and lowest-BIN (159, 160), items metadata and recipes (164, 165), coins/hour engine and module registry (187, 188), method pages and builder (101–110, 189). Bot: /bz (4), /bz-history (5), /flip (6), /craft (7), /mmm (8), /mayor (14), /events (15), live bazaar channel (34).
+
+Phase 4 decisions:
+- Raw bazaar price history is free at every range, which changes idea 84. Only computed insight is paid: depth, spread, seasonality, flips, craft, anomalies and method history on Pro, correlations and custom methods on Max. This keeps paywalled content "transformative" under Hypixel's monetisation rules.
+- Curated methods ship empty (`server/src/modules/market/methods/curated.ts` has a template). Only add rates the team has measured, with a source. Generated methods (order flips, NPC sells, crafts) are valued from live prices.
+- Method ratings are votes only: no comments, so no Online Safety Act user-to-user duties.
+- Recipes are off until `RECIPES_SOURCE_URL` is set. Check the NotEnoughUpdates-REPO licence before turning it on.
+- Forecasts (186) are not built. They would need clear "experimental" labelling and evaluation first, so they move to a later phase.
 
 ### Phase 5: mod-powered insight
 
