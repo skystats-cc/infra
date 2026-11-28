@@ -116,6 +116,7 @@ Phase 7 decisions (done on `feat/phase7-*` branches):
 - Promotion codes are typed on Stripe's page. Creator codes are paid partnerships, so the site must label them as ads (ASA/CAP code). Gifts are one month, the code lasts two years, and unredeemed codes can be refunded within 14 days.
 - Admin bans and comps are audit-logged and are not MCP tools, so changes to a real person's account need a human.
 - The weekly report and ops alerts send counts only, never usernames.
+- Bot `/setup` stores only channel and role ids per server and deletes them when the bot leaves. `/verify` is run by the member themselves, so showing a server they've linked SkyStats is their choice. `/feedback` goes to a private team channel, never posted publicly, so it isn't user-to-user content under the Online Safety Act.
 
 ### Changed or dropped for legal reasons
 
