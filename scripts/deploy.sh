@@ -9,8 +9,7 @@ APP_SERVICES=(api worker web bot)
 STATE=.deploy-previous   # image ids from before the last deploy (git-ignored)
 
 health_ok() {
-  local i
-  for i in $(seq 1 30); do
+  for _ in $(seq 1 30); do
     if curl -fsS -m 3 http://127.0.0.1:3000/readyz >/dev/null && curl -fsS -m 3 -o /dev/null http://127.0.0.1:8080/; then
       return 0
     fi
@@ -36,7 +35,7 @@ rollback() {
   [ -s "$STATE" ] || die "Nothing to roll back to ($STATE is empty)"
   log "Rolling back to the previous images"
   local overrides=()
-  while read -r svc repo; do
+  while read -r svc _; do
     case "$svc" in
       api|worker) overrides+=("SERVER_TAG=rollback") ;;
       web) overrides+=("WEB_TAG=rollback") ;;

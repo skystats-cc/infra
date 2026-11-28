@@ -5,7 +5,7 @@
 # shellcheck source=scripts/lib.sh
 source "$(dirname "$0")/lib.sh"
 
-file=$(ls -t backups/*.dump 2>/dev/null | head -n1 || true)
+file=$(find backups -maxdepth 1 -name '*.dump' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f2- || true)
 [ -n "$file" ] || die "No backups found in backups/"
 name="skystats-restore-drill-$$"
 cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }

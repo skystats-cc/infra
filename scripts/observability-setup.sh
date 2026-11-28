@@ -14,5 +14,9 @@ mkdir -p observability/secrets
 umask 077
 printf '%s' "$token" > observability/secrets/metrics_token
 log "Wrote observability/secrets/metrics_token (git-ignored)"
-[ -n "$(env_get GRAFANA_ADMIN_PASSWORD)" ] || log "Set GRAFANA_ADMIN_PASSWORD in .env, then add observability to COMPOSE_PROFILES"
+if [ -z "$(env_get GRAFANA_ADMIN_PASSWORD)" ]; then
+  printf '\nGRAFANA_ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 24 | tr -d '/+=')" >> .env
+  log "Added a random GRAFANA_ADMIN_PASSWORD to .env (read it with the config_get tool, it's masked; or open .env yourself)"
+fi
+log "Add observability to COMPOSE_PROFILES in .env"
 log "Then: docker compose up -d   (Grafana: http://localhost:3002, user admin)"

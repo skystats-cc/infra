@@ -221,7 +221,9 @@ services:
     restart: unless-stopped
     logging: *logging
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env to use observability}
+      # Set by scripts/observability-setup.sh. Not required here: Compose checks every service's
+      # variables even when its profile is off, so a required value would break every compose command.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
     volumes:

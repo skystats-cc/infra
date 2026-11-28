@@ -7,7 +7,8 @@
 source "$(dirname "$0")/lib.sh"
 
 threshold=$(env_get POWER_STOP_AT_PERCENT 25)
-bat=$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -n1 || true)
+bat=""
+for b in /sys/class/power_supply/BAT*; do [ -d "$b" ] && { bat=$b; break; }; done
 [ -n "$bat" ] || exit 0
 status=$(cat "$bat/status")
 cap=$(cat "$bat/capacity")

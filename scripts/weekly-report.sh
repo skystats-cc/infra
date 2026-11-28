@@ -17,7 +17,8 @@ paid=$(q "select tier || ': ' || count(*) from entitlements where status in ('ac
 late=$(curl -fsS -m 10 -H "x-admin-key: $admin_key" http://127.0.0.1:3000/admin/jobs | jq '[.jobs[] | select(.late)] | length' 2>/dev/null || echo "?")
 dq=$(curl -fsS -m 10 -H "x-admin-key: $admin_key" http://127.0.0.1:3000/admin/data-quality | jq -c . 2>/dev/null || echo "?")
 disk=$(df -hP / | awk 'NR==2 {print $5 " used"}')
-last_backup=$(ls -t backups/*.dump 2>/dev/null | head -n1 | xargs -r basename || echo none)
+newest=$(find backups -maxdepth 1 -name '*.dump' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f2- || true)
+last_backup=$(basename "${newest:-none}")
 
 report="Weekly report: ${accounts} accounts (+${new} this week), ${active} active with the mod; paid ${paid:-none}. Late jobs: ${late}. Data quality: ${dq}. Disk ${disk}. Last backup: ${last_backup}."
 log "$report"
