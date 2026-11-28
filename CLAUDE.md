@@ -7,7 +7,8 @@ You are running on the SkyStats home server (an Ubuntu laptop), in the `infra` r
 - `logs`: one service's recent logs (`grep`, `since`).
 - `config_get` / `config_set`: read and change `.env`. Secrets are masked. **Never read `.env` directly or print secret values.**
 - `sql`: one read-only statement against Postgres.
-- `restart`, `deploy`, `backup`, `list_backups`, `register_bot_commands`, `refresh_player`, `bazaar_snapshot`.
+- `restart`, `deploy`, `rollback`, `backup`, `list_backups`, `register_bot_commands`, `refresh_player`, `bazaar_snapshot`.
+- `jobs`, `retry_job`, `data_quality`, `flags`, `user_lookup` (support only), `laptop_health`, `notify_ops`.
 
 ## Services
 postgres · migrate (runs once) · api (`127.0.0.1:3000`, admin routes need `x-admin-key`) · worker (Hypixel ingestion, jobs) · web (`127.0.0.1:8080`) · bot · cloudflared (public traffic) · uptime-kuma (`127.0.0.1:3001`) · dozzle (`127.0.0.1:8081`).
@@ -24,4 +25,7 @@ postgres · migrate (runs once) · api (`127.0.0.1:3000`, admin routes need `x-a
 - **Site down** → `status`; check `cloudflared` and `web` logs; `api` readiness. Tunnel routing lives in the Cloudflare dashboard, not in this repo.
 - **Ingestion stale** → `logs worker since 30m`; `sql`: `select max(polled_at) from bazaar_products`.
 - **Change a setting** → `config_get`, then `config_set` (it recreates affected containers).
-- **Ship new versions** → `deploy` (pulls images built by each repo's CI), then `status`.
+- **Ship new versions** → `deploy` (pulls images built by each repo's CI, rolls back by itself if health checks fail), then `status`.
+- **Jobs behind** → `jobs` (look for `late`), then `logs worker`.
+- **Bans, comps, refunds** → not tools; see docs/runbook-admin.md and let the person do it.
+- See docs/ops-phase7.md for staging, observability, cron and Cloudflare WAF.

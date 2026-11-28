@@ -21,7 +21,7 @@ import { singleStatement } from './sql.js';
 const INFRA = resolve(process.env.SKYSTATS_INFRA_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..'));
 const ENV_FILE = join(INFRA, '.env');
 const API = (process.env.SKYSTATS_API_URL ?? 'http://127.0.0.1:3000').replace(/\/$/, '');
-const SERVICES = ['postgres', 'migrate', 'api', 'worker', 'web', 'bot', 'cloudflared', 'uptime-kuma', 'dozzle'] as const;
+const SERVICES = ['postgres', 'migrate', 'api', 'worker', 'web', 'bot', 'cloudflared', 'uptime-kuma', 'dozzle', 'prometheus', 'loki', 'promtail', 'grafana'] as const;
 
 type Text = { content: { type: 'text'; text: string }[]; isError?: boolean };
 const ok = (text: string): Text => ({ content: [{ type: 'text', text }] });
@@ -36,15 +36,16 @@ async function envValue(key: string) {
   return parseEnv(text).find((l) => l.key === key)?.value ?? '';
 }
 
-async function admin(method: 'GET' | 'POST', path: string) {
+async function admin(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown) {
   const key = await envValue('ADMIN_API_KEY');
   const res = await fetch(`${API}/admin${path}`, {
     method,
-    headers: { 'x-admin-key': key },
+    headers: { 'x-admin-key': key, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
-  const body = await res.text();
-  return { status: res.status, body };
+  const text = await res.text();
+  return { status: res.status, body: text };
 }
 
 const result = (r: { code: number; stdout: string; stderr: string }, label: string) =>
@@ -299,7 +300,117 @@ server.registerTool(
   },
 );
 
-// Database restores are deliberately not a tool: run scripts/restore.sh yourself.
+
+// ---------------------------------------------------------------- phase 7: platform
+
+const adminText = async (method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown) => {
+  const r = await admin(method, path, body);
+  return r.status < 300 ? ok(clip(r.body || `${r.status} OK`)) : fail(`API returned ${r.status}: ${clip(r.body)}`);
+};
+
+server.registerTool(
+  'jobs',
+  {
+    title: 'Job health',
+    description: 'Every scheduled job and loop with its last success, last error and whether it missed its window (late). Add failed: true for the last 50 failed queue jobs.',
+    inputSchema: { failed: z.boolean().default(false) },
+    annotations: { readOnlyHint: true },
+  },
+  async ({ failed }) => adminText('GET', failed ? '/jobs/failed' : '/jobs'),
+);
+
+server.registerTool(
+  'retry_job',
+  {
+    title: 'Retry a failed job',
+    description: 'Retry one failed queue job (ids from jobs with failed: true).',
+    inputSchema: { queue: z.string().regex(/^[a-z.-]+$/), id: z.string().uuid() },
+    annotations: { destructiveHint: false },
+  },
+  async ({ queue, id }) => adminText('POST', `/jobs/${queue}/${id}/retry`),
+);
+
+server.registerTool(
+  'data_quality',
+  {
+    title: 'Data-quality checks',
+    description: 'Negative balances, duplicate snapshots, bazaar data age, profile resets this week, banned accounts. Plus mod version counts for the last 30 days.',
+    annotations: { readOnlyHint: true },
+  },
+  async () => {
+    const [dq, mv] = await Promise.all([admin('GET', '/data-quality'), admin('GET', '/mod-versions')]);
+    return dq.status < 300 ? ok(clip(`${dq.body}\nmod versions: ${mv.body}`)) : fail(`API returned ${dq.status}: ${dq.body}`);
+  },
+);
+
+server.registerTool(
+  'flags',
+  {
+    title: 'Feature flags',
+    description: 'List feature flags, or set one (enabled, optional minimum tier, rollout percentage).',
+    inputSchema: {
+      set: z
+        .object({
+          key: z.string().regex(/^[a-z0-9.-]{2,48}$/),
+          enabled: z.boolean(),
+          minTier: z.enum(['free', 'pro', 'max']).nullable().optional(),
+          rolloutPercent: z.number().int().min(0).max(100).optional(),
+          description: z.string().max(200).optional(),
+        })
+        .optional(),
+    },
+    annotations: { destructiveHint: true },
+  },
+  async ({ set }) => (set ? adminText('PUT', `/flags/${set.key}`, { ...set, key: undefined }) : adminText('GET', '/flags')),
+);
+
+server.registerTool(
+  'user_lookup',
+  {
+    title: 'Look up a user (support)',
+    description: 'Account id, plan, mod version and ban state for a Minecraft username or UUID. No money data. Only use it to answer a support request.',
+    inputSchema: { q: z.string().min(1).max(36) },
+    annotations: { readOnlyHint: true },
+  },
+  async ({ q }) => adminText('GET', `/users/${encodeURIComponent(q)}`),
+);
+
+server.registerTool(
+  'rollback',
+  {
+    title: 'Roll back the last deploy',
+    description: 'Run scripts/deploy.sh --rollback: start the images that were running before the last deploy (tagged :rollback). Migrations are not undone.',
+    annotations: { destructiveHint: true },
+  },
+  async () => result(await script('deploy.sh', ['--rollback']), 'Rollback'),
+);
+
+server.registerTool(
+  'laptop_health',
+  {
+    title: 'Laptop health check',
+    description: 'Run scripts/laptop-health.sh now: disk, memory, temperature, battery wear and charger, SMART, unhealthy containers. Alerts the ops channel if something is wrong.',
+    annotations: { destructiveHint: false },
+  },
+  async () => result(await script('laptop-health.sh', [], 60_000), 'Laptop health'),
+);
+
+server.registerTool(
+  'notify_ops',
+  {
+    title: 'Post to the ops channel',
+    description: 'Send a short message to the ops Discord webhook (no personal data).',
+    inputSchema: { message: z.string().min(1).max(500) },
+    annotations: { destructiveHint: false },
+  },
+  async ({ message }) => result(await script('notify.sh', [message], 30_000), 'Notify'),
+);
+
+// Bans, plan overrides and comps are deliberately not tools: they affect a real person, so use the
+// admin API by hand (see docs/runbook-admin.md) after checking the request.
+
+// Database restores (and restore drills) are deliberately not tools: run scripts/restore.sh or
+// scripts/restore-drill.sh yourself.
 
 await server.connect(new StdioServerTransport());
 console.error(`skystats-ops MCP ready (infra: ${INFRA}, api: ${API})`);

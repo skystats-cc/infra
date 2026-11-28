@@ -1,0 +1,32 @@
+# Staging: a second copy of the stack on the same laptop, for trying new images before production.
+# Its own project name, database volume, ports and .env.staging (Stripe TEST keys, a test bot).
+#   scripts/staging.sh up      start staging with the :staging (or STAGING_TAG) images
+#   scripts/staging.sh down    stop it (keeps its database)
+# Ports: api 127.0.0.1:3100, web 127.0.0.1:8180. No tunnel by default; add a separate
+# Cloudflare hostname (e.g. staging.skystats.cc behind Cloudflare Access) if testers need it.
+name: skystats-staging
+
+services:
+  api:
+    image: ghcr.io/skystats-cc/server:${STAGING_TAG:-staging}
+    ports: !override
+      - "127.0.0.1:3100:3000"
+  worker:
+    image: ghcr.io/skystats-cc/server:${STAGING_TAG:-staging}
+  migrate:
+    image: ghcr.io/skystats-cc/server:${STAGING_TAG:-staging}
+  web:
+    image: ghcr.io/skystats-cc/web:${STAGING_TAG:-staging}
+    ports: !override
+      - "127.0.0.1:8180:80"
+  bot:
+    image: ghcr.io/skystats-cc/discord-bot:${STAGING_TAG:-staging}
+  uptime-kuma:
+    ports: !override
+      - "127.0.0.1:3101:3001"
+  dozzle:
+    ports: !override
+      - "127.0.0.1:8181:8080"
+  grafana:
+    ports: !override
+      - "127.0.0.1:3102:3000"
