@@ -8,6 +8,8 @@ user=$(env_get POSTGRES_USER skystats)
 db=$(env_get POSTGRES_DB skystats)
 keep=$(env_get BACKUP_KEEP_DAYS 14)
 remote=$(env_get RCLONE_REMOTE)
+recipient=$(env_get BACKUP_AGE_RECIPIENT)
+remote_keep=$(env_get BACKUP_REMOTE_KEEP_DAYS 30)
 
 mkdir -p backups
 file="backups/${db}-$(date +%Y%m%d-%H%M%S).dump"
@@ -22,7 +24,15 @@ find backups -name '*.dump' -mtime "+$keep" -print -delete
 
 if [ -n "$remote" ]; then
   command -v rclone >/dev/null || die "RCLONE_REMOTE set but rclone is not installed"
+  # Personal data never leaves the laptop unencrypted
+  [ -n "$recipient" ] || die "RCLONE_REMOTE is set but BACKUP_AGE_RECIPIENT is empty; refusing an unencrypted off-site copy"
+  command -v age >/dev/null || die "age is not installed (sudo apt install age)"
+  log "Encrypting for off-site copy"
+  age -r "$recipient" -o "$file.age" "$file"
   log "Copying to $remote"
-  rclone copy "$file" "$remote"
+  rclone copy "$file.age" "$remote"
+  rm -f "$file.age"
+  log "Removing off-site copies older than $remote_keep days"
+  rclone delete --min-age "${remote_keep}d" "$remote"
 fi
 log "Backup done"

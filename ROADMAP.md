@@ -1,5 +1,7 @@
 # Infrastructure roadmap
 
+> Product features, their legal rules and the phase plan live in [docs/uk-compliance.md](docs/uk-compliance.md).
+
 What we have now is deliberately simple: one laptop, one Compose stack, images built by CI, a tunnel, nightly backups. Below are the upgrades, roughly in the order they start paying off. Each is independent, so pick them up as PRs.
 
 ## 1. Deployment
@@ -23,7 +25,7 @@ What we have now is deliberately simple: one laptop, one Compose stack, images b
 ## 3. Data
 
 - [ ] **TimescaleDB** (swap `postgres:17` for the Timescale image): make `bazaar_snapshots` a hypertable, turn on native compression (often 10×+ smaller), and use **continuous aggregates** for hourly/daily candles so charts never scan raw rows.
-- [ ] **Tier-based retention** job: FREE 7d / PRO 90d / MAX unlimited is about *access*, but raw data older than N days can be downsampled to hourly/daily aggregates to keep the DB small.
+- [x] **Tier-based retention** job (phase 1, in the server): FREE 7d / PRO 90d / MAX unlimited is about *access*, but raw data older than N days can be downsampled to hourly/daily aggregates to keep the DB small.
 - [ ] **Higher-resolution history** once storage is solved: keep the 30s poll data for 24–48h for intraday charts and anomaly detection.
 - [ ] **Redis** (or Valkey) as a hot cache for `/v1/bazaar` and for pub/sub of live price updates.
 - [ ] **Realtime push**: Server-Sent Events or WebSocket endpoint for the live bazaar page instead of polling.
@@ -48,7 +50,7 @@ What we have now is deliberately simple: one laptop, one Compose stack, images b
 
 ## 6. Reliability & hardware
 
-- [ ] **Backups**: off-site copy (rclone → Backblaze B2), monthly automated restore test into a throwaway container, and alert if a backup is missing.
+- [ ] **Backups**: off-site copy (rclone → Backblaze B2, age-encrypted since phase 1), monthly automated restore test into a throwaway container, and alert if a backup is missing.
 - [ ] **Point-in-time recovery**: WAL archiving with pgBackRest or WAL-G (lose minutes, not a day, on disk failure).
 - [ ] **SSD health monitoring** (smartctl) and battery/AC alerts; a cheap UPS for the router too.
 - [ ] **Second machine** in the home lab: Postgres streaming replica + standby app stack, so either box can fail.

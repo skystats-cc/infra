@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Restore a dump made by backup.sh. Replaces the current database contents!
 #   scripts/restore.sh backups/skystats-20261127-041500.dump
+#   Off-site copies are age-encrypted: decrypt first with  age -d -i <key.txt> file.dump.age > file.dump
+#   After restoring, re-run erasures logged since the dump (audit_log action = account.erased) so deleted accounts stay deleted.
 # shellcheck source=scripts/lib.sh
 source "$(dirname "$0")/lib.sh"
 
