@@ -62,9 +62,11 @@ Discord OAuth with the `identify` scope only, and linking (130, 210, 211), so th
 
 Phase 2 decisions: Discord login is an extra sign-in method, not a new account type. A second Minecraft account on one Discord user needs Pro or Max (idea 131). `/whois` and the roles are opt-in (`discordPublic`, `showTierRole`, both default off). The bot's key is refused on anything that came through Cloudflare. Data export and account deletion stay web-only.
 
-### Phase 3: alerts (Pro and above)
+### Phase 3: alerts (Pro and above) (done on `feat/phase3-alerts` branches)
 
 Alert rules table and delivery worker, quiet hours (32), notification settings (138). Then price alerts (22, 99), anomaly alerts (23, 88, 184), co-op pings only for members with `allowActivityPings` (25, 79), daily digest (26), weekly recap (27), goal reached (28, 67), mayor reminder (31, 163). Patch alerts (30, 167) stay free. Manipulation warnings (24, 185) describe market patterns and never name players.
+
+Phase 3 decisions: every notification is opt-in, and DMs also need Discord linked. Quiet hours delay delivery rather than drop it. Notifications are kept 90 days. Price alerts are limited to 25 on Pro and 200 on Max. Manipulation warnings describe order and volume patterns only. Goals are free; the "goal reached" alert is Pro and above. Election reminders fire when voting opens, because Hypixel's election data has no end time.
 
 ### Phase 4: bazaar and methods
 

@@ -34,6 +34,7 @@ x-server: &server
     DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
     DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-https://skystats.cc/v1/auth/discord/callback}
     BOT_API_KEY: ${BOT_API_KEY:-}
+    SKYBLOCK_NEWS_RSS_URL: ${SKYBLOCK_NEWS_RSS_URL:-https://hypixel.net/forums/skyblock-patch-notes.158/index.rss}
 
 services:
   postgres:
