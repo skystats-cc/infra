@@ -85,6 +85,9 @@ Open Uptime Kuma (`localhost:3001` via SSH tunnel) and add monitors for `https:/
 
 ## Day to day
 
+See also [docs/ops-phase7.md](docs/ops-phase7.md) (rollback, staging, observability, laptop cron, WAF) and [docs/runbook-admin.md](docs/runbook-admin.md).
+
+
 | Task | Command |
 |---|---|
 | Deploy latest `main` of every repo | `scripts/deploy.sh` |

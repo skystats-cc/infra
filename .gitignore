@@ -2,3 +2,8 @@
 .env.bak
 backups/
 *.log
+observability/secrets/
+.deploy-previous
+.health-alerted
+.power-stopped
+.env.staging

@@ -109,6 +109,14 @@ Phase 6 decisions:
 
 Public API keys and webhooks (139, 197–209), SSE live updates (144, 200), observability (230–236), staging, previews, blue-green and rollback (240–243), Renovate, SOPS and WAF (244–246), MCP ops tools, admin panel and feature flags (247–249, 155), weekly ops report (250), frontend engineering (147–154), bot context menu and ops (47, 57–60), server setup and scheduled posts (33, 38, 39).
 
+Phase 7 decisions (done on `feat/phase7-*` branches):
+- Public API keys (Max) are read-only, can't manage the account, are stored hashed and stop working as soon as the plan lapses. Data reached with a key is the owner's own plus public data, so Hypixel's rules still hold: no player histories from the API and no raw data behind the paywall (the bazaar stream and price history stay free).
+- Webhooks only go to public https hosts; every delivery re-checks DNS (no SSRF into the home network) and is HMAC-signed.
+- Error tracking strips user ids, IPs, cookies, bodies and auth headers (UK GDPR data minimisation). Loki keeps logs 14 days.
+- Promotion codes are typed on Stripe's page. Creator codes are paid partnerships, so the site must label them as ads (ASA/CAP code). Gifts are one month, the code lasts two years, and unredeemed codes can be refunded within 14 days.
+- Admin bans and comps are audit-logged and are not MCP tools, so changes to a real person's account need a human.
+- The weekly report and ops alerts send counts only, never usernames.
+
 ### Changed or dropped for legal reasons
 
 | Idea | Change |

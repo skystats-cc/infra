@@ -37,6 +37,12 @@ x-server: &server
     BAZAAR_TAX: ${BAZAAR_TAX:-0.0125}
     RECIPES_SOURCE_URL: ${RECIPES_SOURCE_URL:-}
     SKYBLOCK_NEWS_RSS_URL: ${SKYBLOCK_NEWS_RSS_URL:-https://hypixel.net/forums/skyblock-patch-notes.158/index.rss}
+    # Phase 7: platform
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    METRICS_TOKEN: ${METRICS_TOKEN:-}
+    API_KEY_RATE_LIMIT_PER_MIN: ${API_KEY_RATE_LIMIT_PER_MIN:-600}
+    STRIPE_GIFT_PRICE_PRO: ${STRIPE_GIFT_PRICE_PRO:-}
+    STRIPE_GIFT_PRICE_MAX: ${STRIPE_GIFT_PRICE_MAX:-}
 
 services:
   postgres:
@@ -130,6 +136,8 @@ services:
       LIVE_BAZAAR_CHANNEL_ID: ${LIVE_BAZAAR_CHANNEL_ID:-}
       SERVER_LEADERBOARD_CHANNEL_IDS: ${SERVER_LEADERBOARD_CHANNEL_IDS:-}
       MEMBERS_INTENT: ${MEMBERS_INTENT:-false}
+      SENTRY_DSN: ${BOT_SENTRY_DSN:-}
+      FEEDBACK_CHANNEL_ID: ${FEEDBACK_CHANNEL_ID:-}
     depends_on:
       api: { condition: service_healthy }
 
@@ -172,6 +180,60 @@ services:
     ports:
       - "127.0.0.1:8081:8080"
 
+  # ---- profile: observability -----------------------------------------------
+  # Metrics (Prometheus), logs (Loki + Promtail) and dashboards (Grafana on http://localhost:3002).
+  # Heavier than "monitoring"; on a laptop, enable it when you need to dig into something.
+  # Run scripts/observability-setup.sh once first (writes the metrics token file Prometheus reads).
+  prometheus:
+    image: prom/prometheus:v3
+    profiles: [observability]
+    restart: unless-stopped
+    logging: *logging
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/secrets:/etc/prometheus/secrets:ro
+      - prometheus:/prometheus
+
+  loki:
+    image: grafana/loki:3.5
+    profiles: [observability]
+    restart: unless-stopped
+    logging: *logging
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki:/loki
+
+  promtail:
+    image: grafana/promtail:3.5
+    profiles: [observability]
+    restart: unless-stopped
+    logging: *logging
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    volumes:
+      - ./observability/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [observability]
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env to use observability}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./observability/grafana:/etc/grafana/provisioning:ro
+      - grafana:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on: [prometheus, loki]
+
 volumes:
   pgdata:
   uptime-kuma:
+  prometheus:
+  loki:
+  grafana:
