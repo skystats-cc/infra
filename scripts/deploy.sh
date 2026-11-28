@@ -18,16 +18,21 @@ health_ok() {
   return 1
 }
 
-# Tag each running app image as <repo>:rollback so pulling a new :main can't lose it
+# Tag each running app image as <repo>:rollback so pulling a new :main can't lose it.
+# The repo comes from the running container itself ("docker compose config --images" ignores
+# the service name and lists every image, which once tagged the web image as server:rollback).
 remember_current() {
   : > "$STATE"
-  local svc id image
+  local svc cid id ref repo
   for svc in "${APP_SERVICES[@]}"; do
-    id=$(docker compose images -q "$svc" 2>/dev/null | head -n1 || true)
-    image=$(docker compose config --images "$svc" 2>/dev/null | head -n1 || true)
-    [ -n "$id" ] && [ -n "$image" ] || continue
-    docker tag "$id" "${image%:*}:rollback"
-    printf '%s %s\n' "$svc" "${image%:*}" >> "$STATE"
+    cid=$(docker compose ps -q "$svc" 2>/dev/null | head -n1 || true)
+    [ -n "$cid" ] || continue
+    id=$(docker inspect --format '{{.Image}}' "$cid")
+    ref=$(docker inspect --format '{{.Config.Image}}' "$cid")
+    repo=${ref%:*}
+    case "$repo" in ghcr.io/skystats-cc/*) ;; *) continue ;; esac
+    docker tag "$id" "$repo:rollback"
+    printf '%s %s\n' "$svc" "$repo" >> "$STATE"
   done
 }
 
@@ -35,15 +40,20 @@ rollback() {
   [ -s "$STATE" ] || die "Nothing to roll back to ($STATE is empty)"
   log "Rolling back to the previous images"
   local overrides=()
-  while read -r svc _; do
-    case "$svc" in
-      api|worker) overrides+=("SERVER_TAG=rollback") ;;
-      web) overrides+=("WEB_TAG=rollback") ;;
-      bot) overrides+=("BOT_TAG=rollback") ;;
+  local services=()
+  while read -r svc repo; do
+    # Only roll back what was actually saved; anything else keeps its current tag
+    docker image inspect "$repo:rollback" >/dev/null 2>&1 || continue
+    services+=("$svc")
+    case "$repo" in
+      */server) overrides+=("SERVER_TAG=rollback") ;;
+      */web) overrides+=("WEB_TAG=rollback") ;;
+      */discord-bot) overrides+=("BOT_TAG=rollback") ;;
     esac
   done < "$STATE"
+  [ ${#services[@]} -gt 0 ] || die "No saved :rollback images found"
   # Migrations are forward-only: the old server must tolerate the new schema (we only add columns/tables)
-  env "${overrides[@]}" docker compose up -d --no-deps --wait "${APP_SERVICES[@]}"
+  env "${overrides[@]}" docker compose up -d --no-deps --pull never --wait "${services[@]}"
   if health_ok; then
     log "Rolled back. Previous images are running (tag :rollback)."
     scripts/notify.sh "Deploy rolled back; the previous version is running. Check logs before retrying."
@@ -72,6 +82,11 @@ docker compose pull --quiet
 log "Starting stack (migrations run first)"
 if ! docker compose up -d --remove-orphans --wait || ! health_ok; then
   log "Health check failed after deploy"
+  # Show why, e.g. a failed migration (wrong database password, bad migration)
+  if [ "$(docker compose ps -a --format '{{.ExitCode}}' migrate 2>/dev/null | head -n1)" != "0" ]; then
+    log "The migrate step failed. Its last lines:"
+    docker compose logs --no-log-prefix --tail 15 migrate || true
+  fi
   rollback
   exit 1
 fi
