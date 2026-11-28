@@ -118,6 +118,8 @@ Phase 7 decisions (done on `feat/phase7-*` branches):
 - The weekly report and ops alerts send counts only, never usernames.
 - Bot `/setup` stores only channel and role ids per server and deletes them when the bot leaves. `/verify` is run by the member themselves, so showing a server they've linked SkyStats is their choice. `/feedback` goes to a private team channel, never posted publicly, so it isn't user-to-user content under the Online Safety Act.
 
+Staff panel: access is limited to the Discord staff role and re-checked every request; every view of a player's data and every change is audit-logged (UK GDPR accountability and Article 32). Login secrets (sessions, OAuth states) are not browsable and hashes/secrets/tokens are masked. Staff should only open a player's data for a support or safety reason; record that in the team handbook and the DPIA.
+
 ### Changed or dropped for legal reasons
 
 | Idea | Change |

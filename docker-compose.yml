@@ -43,6 +43,10 @@ x-server: &server
     API_KEY_RATE_LIMIT_PER_MIN: ${API_KEY_RATE_LIMIT_PER_MIN:-600}
     STRIPE_GIFT_PRICE_PRO: ${STRIPE_GIFT_PRICE_PRO:-}
     STRIPE_GIFT_PRICE_MAX: ${STRIPE_GIFT_PRICE_MAX:-}
+    # Staff panel: the bot's token is only used to read one member's roles in the staff server
+    DISCORD_BOT_TOKEN: ${DISCORD_TOKEN:-}
+    STAFF_GUILD_ID: ${STAFF_GUILD_ID:-}
+    STAFF_ROLE_ID: ${STAFF_ROLE_ID:-1575963034151555242}
 
 services:
   postgres:

@@ -1,5 +1,12 @@
 # Admin actions (support)
 
+Most of this is now on the website at **skystats.cc/staff**, for anyone whose linked Discord has the
+staff role (`STAFF_ROLE_ID`) in `STAFF_GUILD_ID`. It covers user lookup, giving and taking plans,
+suspensions, announcements, feature flags, job health and a read-only database browser. Every
+action and view is audit-logged with who did it. Take the Discord role away to remove access
+(within a minute). The commands below still work on the laptop.
+
+
 All need the admin key and only work on the laptop (`127.0.0.1:3000`). They touch real people's
 accounts, so check the request first and note why. Every action goes to the audit log.
 
