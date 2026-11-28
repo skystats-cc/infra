@@ -79,9 +79,18 @@ Phase 4 decisions:
 - Recipes are off until `RECIPES_SOURCE_URL` is set. Check the NotEnoughUpdates-REPO licence before turning it on.
 - Forecasts (186) are not built. They would need clear "experimental" labelling and evaluation first, so they move to a later phase.
 
-### Phase 5: mod-powered insight
+### Phase 5: mod-powered insight (done on `feat/phase5-mod-insight` branches)
 
 Mod event stream (157), inventory value (158), transfer and reset detection (161, 162), sessions from mod heartbeats (193, 13, 63), activity classifier as an opt-in (156), personal method performance (105). Co-op pages (76–82) with shared-bank ledger (78) only from members who use the mod.
+
+Phase 5 decisions:
+- The activity classifier is opt-in (`activityInsights`, default off) because it profiles the player (Children's Code standard 12).
+- The mod sends inventory item counts, but only the total value is stored (data minimisation).
+- Rare drops come from the player's own chat only.
+- Tagging a session with a method is the player's choice; nothing is inferred.
+- Co-op gains and shares only use members who share coins (`hideBank` off). The activity feed only uses members who allow it.
+- The CSV export is Pro as a convenience. The full JSON data export stays free for everyone.
+- Also built: dashboard items 63–66, 68, 71, 73 and 74, plus bot /session (13) and /coop (2).
 
 ### Phase 6: social and community (all opt-in)
 
